@@ -10,8 +10,17 @@
 </head>
 
 <body>
-    <canvas id="canvas" style="border:2px solid"></canvas>
-    <script src="index.js"></script>
+    <canvas id="canvas"></canvas>
+    <script type="module">
+        import { FluidSim } from "./index.js";
+
+        const canvas = document.getElementById("canvas");
+        canvas.width = window.innerWidth - 20;
+        canvas.height = window.innerHeight - 25;
+
+        const sim = new FluidSim(canvas, { simScale: 1.5, pressureIters: 30 });
+        window.addEventListener("resize", () => sim.resize());
+    </script>
 </body>
 
 </html>
