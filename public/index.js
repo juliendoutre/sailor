@@ -16,6 +16,7 @@ const [
   quadShaderSource,
   advectShaderSource,
   copyShaderSource,
+  pressureShaderSource,
   divergenceShaderSource,
   gradientShaderSource,
   jacobiShaderSource,
@@ -24,6 +25,7 @@ const [
   loadShader("./shaders/vertex/quad.glsl"),
   loadShader("./shaders/fragments/advect.glsl"),
   loadShader("./shaders/fragments/copy.glsl"),
+  loadShader("./shaders/fragments/pressure.glsl"),
   loadShader("./shaders/fragments/divergence.glsl"),
   loadShader("./shaders/fragments/gradient.glsl"),
   loadShader("./shaders/fragments/jacobi.glsl"),
@@ -63,6 +65,9 @@ export class FluidSim {
 
     // Shaders (fragment):
     this.fsCopy = this.createProgram(quadShaderSource, copyShaderSource);
+
+    // Render pressure as a color
+    this.fsPressure = this.createProgram(quadShaderSource, pressureShaderSource);
 
     // Advect a quantity q by velocity field u
     this.fsAdvect = this.createProgram(quadShaderSource, advectShaderSource);
@@ -451,7 +456,7 @@ export class FluidSim {
   render() {
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    this.drawTo(null, this.fsCopy, null, { uTex: this.dye.read.tex });
+    this.drawTo(null, this.fsPressure, null, { uTex: this.pressure.read.tex });
   }
 
   frame(now) {
