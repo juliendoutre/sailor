@@ -15,7 +15,6 @@ async function loadShader(path) {
 const [
   quadShaderSource,
   advectShaderSource,
-  copyShaderSource,
   pressureShaderSource,
   divergenceShaderSource,
   gradientShaderSource,
@@ -24,7 +23,6 @@ const [
 ] = await Promise.all([
   loadShader("./shaders/vertex/quad.glsl"),
   loadShader("./shaders/fragments/advect.glsl"),
-  loadShader("./shaders/fragments/copy.glsl"),
   loadShader("./shaders/fragments/pressure.glsl"),
   loadShader("./shaders/fragments/divergence.glsl"),
   loadShader("./shaders/fragments/gradient.glsl"),
@@ -61,9 +59,6 @@ export class FluidSim {
     // Geometry: fullscreen triangle (1 draw call, no VBO setup complexity)
     this.quadVAO = this.gl.createVertexArray();
     this.gl.bindVertexArray(this.quadVAO);
-
-    // Shaders (fragment):
-    this.fsCopy = this.createProgram(quadShaderSource, copyShaderSource);
 
     // Render pressure as a color
     this.fsPressure = this.createProgram(quadShaderSource, pressureShaderSource);
