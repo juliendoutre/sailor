@@ -6,7 +6,7 @@ async function loadShader(path) {
   const res = await fetch(url);
 
   if (!res.ok) {
-      throw new Error(`Failed to load ${url}: ${res.status}`);
+    throw new Error(`Failed to load ${url}: ${res.status}`);
   }
 
   return await res.text();
@@ -101,7 +101,7 @@ export class FluidSim {
   }
 
   initEvents() {
-    const rect = () => c.getBoundingClientRect();
+    const rect = () => this.canvas.getBoundingClientRect();
 
     const toUv = (e) => {
       const r = rect();
