@@ -55,7 +55,6 @@ export class FluidSim {
     this.simScale = opts.simScale ?? 1.0; // 1 = canvas size, >1 downsample
     this.viscosity = opts.viscosity ?? 0.0001;
     this.dissipationVel = opts.dissipationVel ?? 0.999;
-    this.dissipationDye = opts.dissipationDye ?? 0.995;
     this.pressureIters = opts.pressureIters ?? 20;
     this.timeStep = opts.timeStep ?? 1 / 60;
 
@@ -81,10 +80,10 @@ export class FluidSim {
     // Subtract pressure gradient from velocity (project to divergence-free)
     this.fsGradient = this.createProgram(quadShaderSource, gradientShaderSource);
 
-    // Add dye + force at a point (splat)
+    // Add force at a point (splat)
     this.fsSplat = this.createProgram(quadShaderSource, splatShaderSource);
 
-    // Create render targets (ping-pong for velocity, pressure; single for divergence & dye)
+    // Create render targets (ping-pong for velocity, pressure; single for divergence)
     this.resize();
 
     // Interaction state
@@ -94,7 +93,6 @@ export class FluidSim {
       y: 0,
       dx: 0,
       dy: 0,
-      color: [1, 0.4, 0.1],
     };
     this.initEvents();
 
@@ -155,13 +153,11 @@ export class FluidSim {
     // Create or recreate targets
     const mkRG16 = () => this.createTarget(simW, simH, this.gl.RG16F);
     const mkR16 = () => this.createTarget(simW, simH, this.gl.R16F);
-    const mkRGBA16 = () => this.createTarget(simW, simH, this.gl.RGBA16F);
 
-    // Velocity (RG16F), Pressure (R16F), Divergence (R16F), Dye (RGBA16F)
+    // Velocity (RG16F), Pressure (R16F), Divergence (R16F)
     this.vel = this.createPingPong(mkRG16());
     this.pressure = this.createPingPong(mkR16());
     this.divergence = mkR16();
-    this.dye = this.createPingPong(mkRGBA16());
 
     // Clear targets
     this.clearTarget(this.vel.read, [0, 0, 0, 1]);
@@ -169,8 +165,6 @@ export class FluidSim {
     this.clearTarget(this.pressure.read, [0, 0, 0, 1]);
     this.clearTarget(this.pressure.write, [0, 0, 0, 1]);
     this.clearTarget(this.divergence, [0, 0, 0, 1]);
-    this.clearTarget(this.dye.read, [0, 0, 0, 1]);
-    this.clearTarget(this.dye.write, [0, 0, 0, 1]);
   }
 
   createProgram(vsSource, fsSource) {
@@ -357,7 +351,7 @@ export class FluidSim {
   step(dt) {
     const texel = [1 / this.simSize[0], 1 / this.simSize[1]];
 
-    // 1) Splat user input (adds dye & velocity)
+    // 1) Splat user input (adds velocity)
     if (this.pointer.down) {
       const force = [this.pointer.dx * 500.0, this.pointer.dy * 500.0];
       // Velocity splat
@@ -372,19 +366,6 @@ export class FluidSim {
         { uTarget: this.vel.read.tex },
       );
       this.vel.swap();
-
-      // Dye splat
-      this.drawTo(
-        this.dye.write,
-        this.fsSplat,
-        {
-          uPoint: [this.pointer.x, this.pointer.y],
-          uColor: this.pointer.color,
-          uRadius: 0.02,
-        },
-        { uTarget: this.dye.read.tex },
-      );
-      this.dye.swap();
 
       // reset pointer delta after applying
       this.pointer.dx = this.pointer.dy = 0;
@@ -403,20 +384,7 @@ export class FluidSim {
     );
     this.vel.swap();
 
-    // 3) Advect dye by velocity
-    this.drawTo(
-      this.dye.write,
-      this.fsAdvect,
-      {
-        uDt: dt,
-        uDissipation: this.dissipationDye,
-        uTexel: texel,
-      },
-      { uQ: this.dye.read.tex, uVelocity: this.vel.read.tex },
-    );
-    this.dye.swap();
-
-    // 4) Compute divergence of velocity
+    // 3) Compute divergence of velocity
     this.drawTo(
       this.divergence,
       this.fsDivergence,
@@ -424,7 +392,7 @@ export class FluidSim {
       { uVelocity: this.vel.read.tex },
     );
 
-    // 5) Pressure solve via Jacobi iterations
+    // 4) Pressure solve via Jacobi iterations
     // Clear pressure (optional) — skip to keep previous frame as initial guess
     for (let i = 0; i < this.pressureIters; i++) {
       this.drawTo(
@@ -439,7 +407,7 @@ export class FluidSim {
       this.pressure.swap();
     }
 
-    // 6) Subtract pressure gradient from velocity
+    // 5) Subtract pressure gradient from velocity
     this.drawTo(
       this.vel.write,
       this.fsGradient,
