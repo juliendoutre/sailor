@@ -20,6 +20,7 @@ const [
   gradientShaderSource,
   jacobiShaderSource,
   splatShaderSource,
+  obstacleShaderSource,
 ] = await Promise.all([
   loadShader("./shaders/vertex/quad.glsl"),
   loadShader("./shaders/fragments/advect.glsl"),
@@ -28,6 +29,7 @@ const [
   loadShader("./shaders/fragments/gradient.glsl"),
   loadShader("./shaders/fragments/jacobi.glsl"),
   loadShader("./shaders/fragments/splat.glsl"),
+  loadShader("./shaders/fragments/obstacle.glsl"),
 ]);
 
 export class FluidSim {
@@ -77,6 +79,13 @@ export class FluidSim {
 
     // Add force at a point (splat)
     this.fsSplat = this.createProgram(quadShaderSource, splatShaderSource);
+
+    // Render obstacles
+    this.fsObstacle = this.createProgram(quadShaderSource, obstacleShaderSource);
+
+    // Obstacle definitions
+    this.obstacles = [];
+    this.obstacleColor = [1.0, 1.0, 1.0];
 
     // Create render targets (ping-pong for velocity, pressure; single for divergence)
     this.resize();
@@ -149,10 +158,11 @@ export class FluidSim {
     const mkRG16 = () => this.createTarget(simW, simH, this.gl.RG16F);
     const mkR16 = () => this.createTarget(simW, simH, this.gl.R16F);
 
-    // Velocity (RG16F), Pressure (R16F), Divergence (R16F)
+    // Velocity (RG16F), Pressure (R16F), Divergence (R16F), Obstacles (R16F)
     this.vel = this.createPingPong(mkRG16());
     this.pressure = this.createPingPong(mkR16());
     this.divergence = mkR16();
+    this.obstacleTexture = mkR16();
 
     // Clear targets
     this.clearTarget(this.vel.read, [0, 0, 0, 1]);
@@ -160,6 +170,10 @@ export class FluidSim {
     this.clearTarget(this.pressure.read, [0, 0, 0, 1]);
     this.clearTarget(this.pressure.write, [0, 0, 0, 1]);
     this.clearTarget(this.divergence, [0, 0, 0, 1]);
+    this.clearTarget(this.obstacleTexture, [0, 0, 0, 1]);
+
+    // Re-render obstacles after resize
+    this.renderObstacles();
   }
 
   createProgram(vsSource, fsSource) {
@@ -343,6 +357,48 @@ export class FluidSim {
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
   }
 
+  addObstacle(type, x, y, options = {}) {
+    const obstacle = {
+      type,
+      x,
+      y,
+      radius: options.radius || 0.05,
+      width: options.width || 0.1,
+      height: options.height || 0.05,
+    };
+
+    this.obstacles.push(obstacle);
+    this.renderObstacles();
+    return obstacle;
+  }
+
+  renderObstacles() {
+    // Clear obstacle texture
+    this.clearTarget(this.obstacleTexture, [0, 0, 0, 1]);
+
+    // Enable additive blending to combine multiple obstacles
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.ONE, this.gl.ONE);
+
+    // Render each obstacle
+    for (const obstacle of this.obstacles) {
+      this.drawTo(
+        this.obstacleTexture,
+        this.fsObstacle,
+        {
+          uPoint: [obstacle.x, obstacle.y],
+          uRadius: obstacle.radius,
+          uShape: obstacle.shape,
+          uSize: [obstacle.width, obstacle.height],
+          uRotation: obstacle.rotation,
+        }
+      );
+    }
+
+    // Disable blending
+    this.gl.disable(this.gl.BLEND);
+  }
+
   step(dt) {
     const texel = [1 / this.simSize[0], 1 / this.simSize[1]];
 
@@ -375,7 +431,11 @@ export class FluidSim {
         uDissipation: this.dissipationVel,
         uTexel: texel,
       },
-      { uQ: this.vel.read.tex, uVelocity: this.vel.read.tex },
+      {
+        uQ: this.vel.read.tex,
+        uVelocity: this.vel.read.tex,
+        uObstacles: this.obstacleTexture.tex
+      },
     );
     this.vel.swap();
 
@@ -397,6 +457,7 @@ export class FluidSim {
         {
           uPressure: this.pressure.read.tex,
           uDivergence: this.divergence.tex,
+          uObstacles: this.obstacleTexture.tex,
         },
       );
       this.pressure.swap();
@@ -410,6 +471,7 @@ export class FluidSim {
       {
         uVelocity: this.vel.read.tex,
         uPressure: this.pressure.read.tex,
+        uObstacles: this.obstacleTexture.tex,
       },
     );
     this.vel.swap();
@@ -419,7 +481,13 @@ export class FluidSim {
   render() {
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    this.drawTo(null, this.fsPressure, null, { uTex: this.pressure.read.tex });
+    this.drawTo(null, this.fsPressure,
+      { uObstacleColor: this.obstacleColor },
+      {
+        uTex: this.pressure.read.tex,
+        uObstacles: this.obstacleTexture.tex
+      }
+    );
   }
 
   frame(now) {
