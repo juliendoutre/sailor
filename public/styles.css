@@ -1,0 +1,27 @@
+.controls {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #eee;
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+}
+
+.controls label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.controls input[type="range"] {
+    width: 140px;
+    cursor: pointer;
+}
