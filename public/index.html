@@ -21,7 +21,8 @@
         const sim = new FluidSim(canvas, { simScale: 1.5, pressureIters: 30, wind: [3.0, 0.0] });
         window.addEventListener("resize", () => sim.resize());
 
-        sim.addObstacle('circle', 0.5, 0.5, { radius: 0.08 });
+        sim.addObstacle('sail', 0.35, 0.55, { chord: 0.12, camber: 0.15, thickness: 0.004, rotation: 0.4 });
+        sim.addObstacle('sail', 0.55, 0.5, { chord: 0.18, camber: 0.12, thickness: 0.005, rotation: 0.25 });
     </script>
 </body>
 

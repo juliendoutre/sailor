@@ -356,6 +356,10 @@ export class FluidSim {
       x,
       y,
       radius: options.radius || 0.05,
+      chord: options.chord || 0.15,
+      camber: options.camber || 0.12,
+      thickness: options.thickness || 0.005,
+      rotation: options.rotation || 0.0,
     };
 
     this.obstacles.push(obstacle);
@@ -380,6 +384,11 @@ export class FluidSim {
           uPoint: [obstacle.x, obstacle.y],
           uRadius: obstacle.radius,
           uAspect: this.simSize[0] / this.simSize[1],
+          uShape: obstacle.type === 'sail' ? 1.0 : 0.0,
+          uChord: obstacle.chord,
+          uCamber: obstacle.camber,
+          uThickness: obstacle.thickness,
+          uRotation: obstacle.rotation,
         }
       );
     }
