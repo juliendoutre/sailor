@@ -11,6 +11,14 @@
 
 <body>
     <canvas id="canvas"></canvas>
+    <div class="controls">
+        <label>Wind force <input type="range" id="wind" min="0" max="10" step="0.1" value="3"></label>
+        <label>Wind angle <input type="range" id="wind-angle" min="-3.14" max="3.14" step="0.01" value="0"></label>
+        <label>Jib angle <input type="range" id="jib-angle" min="-1.5" max="1.5" step="0.01" value="0.4"></label>
+        <label>Jib tension <input type="range" id="jib-tension" min="0" max="1" step="0.01" value="0.5"></label>
+        <label>Main angle <input type="range" id="main-angle" min="-1.5" max="1.5" step="0.01" value="0.25"></label>
+        <label>Main tension <input type="range" id="main-tension" min="0" max="1" step="0.01" value="0.5"></label>
+    </div>
     <script type="module">
         import { FluidSim } from "./index.js";
 
@@ -23,6 +31,47 @@
 
         sim.addObstacle('sail', 0.35, 0.55, { chord: 0.12, camber: 0.15, thickness: 0.004, rotation: 0.4 });
         sim.addObstacle('sail', 0.55, 0.5, { chord: 0.18, camber: 0.12, thickness: 0.005, rotation: 0.25 });
+
+        const jib = sim.obstacles[0];
+        const main = sim.obstacles[1];
+
+        let windAngle = 0;
+        let windForce = 3;
+
+        function updateWind() {
+            sim.wind[0] = windForce * Math.cos(windAngle);
+            sim.wind[1] = windForce * Math.sin(windAngle);
+        }
+
+        document.getElementById("wind").addEventListener("input", (e) => {
+            windForce = parseFloat(e.target.value);
+            updateWind();
+        });
+
+        document.getElementById("wind-angle").addEventListener("input", (e) => {
+            windAngle = parseFloat(e.target.value);
+            updateWind();
+        });
+
+        document.getElementById("jib-angle").addEventListener("input", (e) => {
+            jib.rotation = parseFloat(e.target.value);
+            sim.renderObstacles();
+        });
+
+        document.getElementById("jib-tension").addEventListener("input", (e) => {
+            jib.camber = 0.02 + 0.28 * (1 - parseFloat(e.target.value));
+            sim.renderObstacles();
+        });
+
+        document.getElementById("main-angle").addEventListener("input", (e) => {
+            main.rotation = parseFloat(e.target.value);
+            sim.renderObstacles();
+        });
+
+        document.getElementById("main-tension").addEventListener("input", (e) => {
+            main.camber = 0.02 + 0.28 * (1 - parseFloat(e.target.value));
+            sim.renderObstacles();
+        });
     </script>
 </body>
 
