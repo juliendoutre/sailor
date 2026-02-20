@@ -53,7 +53,6 @@ export class FluidSim {
     }
 
     this.simScale = opts.simScale ?? 1.0; // 1 = canvas size, >1 downsample
-    this.viscosity = opts.viscosity ?? 0.0001;
     this.dissipationVel = opts.dissipationVel ?? 0.999;
     this.pressureIters = opts.pressureIters ?? 20;
     this.timeStep = opts.timeStep ?? 1 / 60;
@@ -262,21 +261,14 @@ export class FluidSim {
 
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
 
-    return { tex, fbo, w: width, h: height };
+    return { tex, fbo, w: width, h: height, internalFormat };
   }
 
   createPingPong(target) {
     const a = target;
 
-    const b = this.createTarget(
-      target.w,
-      target.h,
-      this.gl.getInternalformatParameter
-        ? (target.internalFormat ?? this.gl.RG16F)
-        : this.gl.RG16F,
-    );
+    const b = this.createTarget(target.w, target.h, target.internalFormat);
 
-    // If internalFormat not tracked, create same spec by making another of same dimensions & defaults
     const pingpong = {
       read: a,
       write: b,
@@ -363,8 +355,6 @@ export class FluidSim {
       x,
       y,
       radius: options.radius || 0.05,
-      width: options.width || 0.1,
-      height: options.height || 0.05,
     };
 
     this.obstacles.push(obstacle);
@@ -388,9 +378,7 @@ export class FluidSim {
         {
           uPoint: [obstacle.x, obstacle.y],
           uRadius: obstacle.radius,
-          uShape: obstacle.shape,
-          uSize: [obstacle.width, obstacle.height],
-          uRotation: obstacle.rotation,
+          uAspect: this.simSize[0] / this.simSize[1],
         }
       );
     }
@@ -413,6 +401,7 @@ export class FluidSim {
           uPoint: [this.pointer.x, this.pointer.y],
           uColor: [force[0], force[1], 0],
           uRadius: 0.02,
+          uAspect: this.simSize[0] / this.simSize[1],
         },
         { uTarget: this.vel.read.tex },
       );
@@ -428,7 +417,7 @@ export class FluidSim {
       this.fsAdvect,
       {
         uDt: dt,
-        uDissipation: this.dissipationVel,
+        uDissipation: Math.pow(this.dissipationVel, dt * 60.0),
         uTexel: texel,
       },
       {
