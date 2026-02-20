@@ -18,7 +18,7 @@
         canvas.width = window.innerWidth - 20;
         canvas.height = window.innerHeight - 25;
 
-        const sim = new FluidSim(canvas, { simScale: 1.5, pressureIters: 30 });
+        const sim = new FluidSim(canvas, { simScale: 1.5, pressureIters: 30, wind: [3.0, 0.0] });
         window.addEventListener("resize", () => sim.resize());
 
         sim.addObstacle('circle', 0.5, 0.5, { radius: 0.08 });

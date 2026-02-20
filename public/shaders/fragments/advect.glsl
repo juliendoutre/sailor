@@ -8,6 +8,7 @@ uniform sampler2D uObstacles;
 uniform float uDt;
 uniform float uDissipation;
 uniform vec2 uTexel;
+uniform vec2 uWind;
 
 in vec2 vUv;
 
@@ -34,10 +35,10 @@ void main(){
         if (obstacleAtPrev > 0.5) {
             // Backtraced into obstacle, use current velocity
             vec4 q = texture(uQ, vUv);
-            outColor = q * uDissipation;
+            outColor = q * uDissipation + vec4(uWind * uDt, 0.0, 0.0);
         } else {
             vec4 q = texture(uQ, prevUv);
-            outColor = q * uDissipation;
+            outColor = q * uDissipation + vec4(uWind * uDt, 0.0, 0.0);
         }
     }
 }

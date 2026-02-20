@@ -56,6 +56,7 @@ export class FluidSim {
     this.dissipationVel = opts.dissipationVel ?? 0.999;
     this.pressureIters = opts.pressureIters ?? 20;
     this.timeStep = opts.timeStep ?? 1 / 60;
+    this.wind = opts.wind ?? [0, 0];
 
     // Geometry: fullscreen triangle (1 draw call, no VBO setup complexity)
     this.quadVAO = this.gl.createVertexArray();
@@ -419,6 +420,7 @@ export class FluidSim {
         uDt: dt,
         uDissipation: Math.pow(this.dissipationVel, dt * 60.0),
         uTexel: texel,
+        uWind: this.wind,
       },
       {
         uQ: this.vel.read.tex,
